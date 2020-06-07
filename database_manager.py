@@ -135,10 +135,3 @@ class Database(dict):
                 self._writeself()
         finally:
             Database.locks[self.name].release()
-
-
-db = Database
-
-with db('test') as users:
-    users["quinten"] = {"status": "cool"}
-    users["foo"] = "bar"
