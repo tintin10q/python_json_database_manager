@@ -9,7 +9,6 @@ class Database(dict):
     This class is used to write and read stuff with the database
     _save functions can be run on the class as they acquire the lock for the file.
     functions without save are only meant to be run inside a with statement that will lock the file for them.
-
     """
 
     # generate locks
@@ -78,14 +77,20 @@ class Database(dict):
         Database.__write(self.name, self)
 
     @staticmethod
-    def create(name, data={}):
+    def create(name, data={}, replace=False):
         """Will create a new file named <name>.json with data inside and will add file to lock."""
-        assert name not in Database.locks, "You tried to create a database that already exists."
-        database_path = os.path.join(os.path.dirname(__file__), name + ".json")
-        open(database_path, "w+").close()
-        Database.locks[name] = threading.Lock()
-        Database.write(name, data)
-        return data
+        if name not in Database.locks:  
+            Database.locks[name] = threading.Lock()
+            database_path = os.path.join(os.path.dirname(__file__), name + ".json")
+            open(database_path, "w+").close()
+            Database.write(name, data)
+            return data
+        elif name in Database.locks and replace:  # File already there
+            database_path = os.path.join(os.path.dirname(__file__), name + ".json")
+            open(database_path, "w+").close()
+            Database.write(name, data)
+            return data
+
 
     @staticmethod
     def add(name, data, key):
