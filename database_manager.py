@@ -77,7 +77,7 @@ class Database(dict):
         Database.__write(self.name, self)
 
     @staticmethod
-    def create(name, data={}, replace=False):
+    def create(name, data, replace=False):
         """Will create a new file named <name>.json with data inside and will add file to lock."""
         if name not in Database.locks:  
             Database.locks[name] = threading.Lock()
@@ -110,7 +110,7 @@ class Database(dict):
             Database.__write(name, database)
 
     @staticmethod
-    def reset_all(default_data={}):
+    def reset_all(default_data):
         """Will reset all databases. The reset state should be registered manually for special cases."""
         for name, lock in Database.locks.items():
             with lock:
