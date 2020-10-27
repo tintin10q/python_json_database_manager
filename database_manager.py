@@ -1,3 +1,4 @@
+import copy
 import glob
 import json
 import os
@@ -9,6 +10,19 @@ class Database(dict):
     This class is used to write and read stuff with the database
     _save functions can be run on the class as they acquire the lock for the file.
     functions without save are only meant to be run inside a with statement that will lock the file for them.
+    
+    When reading you can call the static methods. 
+    
+    Database.read(name)
+    
+    It is not recomended to use the write methods use the context manager instead.
+    When using the context manager make an instance of the class.
+    
+    with Database(name) as name:
+        bla bla bla
+        
+    name will be a dict so you can use name as if it is a dict!
+    If anything goes wrong with the context manager a rollback will be made. 
     """
 
     # generate locks
@@ -61,7 +75,7 @@ class Database(dict):
 
     @staticmethod
     def write(name, data):
-        """Will write data to the <name>.json with a lock. Do not run in other lock that will cause deadlock."""
+        """Will write data to the <name>.json with a lock. Do not run in other lock that will cause deadlock. ALso do not run this in general use the context manager"""
         with Database.get_lock(name):
             return Database.__write(name, data)
 
@@ -79,7 +93,7 @@ class Database(dict):
     @staticmethod
     def create(name, data, replace=False):
         """Will create a new file named <name>.json with data inside and will add file to lock."""
-        if name not in Database.locks:  
+        if name not in Database.locks:
             Database.locks[name] = threading.Lock()
             database_path = os.path.join(os.path.dirname(__file__), name + ".json")
             open(database_path, "w+").close()
@@ -90,7 +104,6 @@ class Database(dict):
             open(database_path, "w+").close()
             Database.write(name, data)
             return data
-
 
     @staticmethod
     def add(name, data, key):
@@ -128,15 +141,21 @@ class Database(dict):
     def __enter__(self):
         self.clear()
         self.lock.acquire()
-        self.backup_data = self._readself()
-        self.update(self.backup_data)
+        self.data = self._readself()
+        self.backup_data = copy.deepcopy(self.data)  # Make a deep copy to preserve the backup and also lists inside the backup
+        self.update(self.data)  # Set dict data to self.data
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
-            if exc_type is not None:  # Attempt rollback
+            if exc_type is not None:  # There was an error in context attempt rollback and re-raise
                 self.__write(self.name, self.backup_data)
+                raise exc_type
             else:
-                self._writeself()
+                try:  # Try to write new data
+                    self._writeself()
+                except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback
+                    self.__write(self.name, self.backup_data)
+                    raise e
         finally:
             Database.locks[self.name].release()
