@@ -150,12 +150,10 @@ class Database(dict):
         try:
             if exc_type is not None:  # There was an error in context attempt rollback and re-raise
                 self.__write(self.name, self.backup_data)
-                raise exc_type
             else:
                 try:  # Try to write new data
                     self._writeself()
                 except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback
                     self.__write(self.name, self.backup_data)
-                    raise e
         finally:
             Database.locks[self.name].release()
