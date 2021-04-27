@@ -19,7 +19,7 @@ You can initiate the class with a target name. The class checks if this file exi
 
 You can also change the target name by modifing self.name. There is an automatic check that will assert if this new name exists. 
 
-#Static methods
+## Static methods
 There are also a couple static methods for when you do not want to run a database command in a `with`. All of these static methods will all acquire the lock for the file automatically. 
 
 - `read(name)` -> Will return the **data** in **name**.json
