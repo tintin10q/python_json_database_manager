@@ -3,7 +3,7 @@ The database manager used in many of my projects
 
 A thread safe json database context manager. The class creates seperate locks for each .json file in the same directory as the .py file. This way if one file is edited other files do not have to wait.
 
-#This class can be used with the `with` statement.
+# This class can be used with the `with` statement.
 
 ```
 db = Database
