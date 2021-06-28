@@ -2,33 +2,41 @@ import copy
 import glob
 import json
 import os
-import threading
+from multiprocessing import Lock
 
+from collections import UserDict
 
-class Database(dict):
+class Database(UserDict):
     """
-    This class is used to write and read stuff with the database
-    _save functions can be run on the class as they acquire the lock for the file.
+    This class is used to write and read stuff with a database made out of local json files
+    
+    The files are being read from disk and turned into dicts.
+    This class really shines with the context manager where you just ask for the name of a document and you
+    can edit it as a dict.
+    The dict is autometically written to disk when the context manager is closed.
+    
+    _save functions can be run on the class outside a context manager as they acquire the lock for the file.
     functions without save are only meant to be run inside a with statement that will lock the file for them.
     
     When reading you can call the static methods. 
     
     Database.read(name)
     
-    It is not recomended to use the write methods use the context manager instead.
+    It is not recommended to use the write methods use the context manager instead.
     When using the context manager make an instance of the class.
     
-    with Database(name) as name:
-        bla bla bla
+    with Database("document_name") as document:
+        document_name["new_data"] = new_data
         
-    name will be a dict so you can use name as if it is a dict!
-    If anything goes wrong with the context manager a rollback will be made. 
+    Document will be a dict so you can use document as if it is a dict!
+    
+    If anything goes wrong with the context manager makes a rollback to the state before any edits is made!
     """
 
     # generate locks
     my_path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(my_path)
-    locks = {file[:-5]: threading.Lock() for file in glob.glob("*.json")}
+    locks = {file[:-5]: Lock() for file in glob.glob("*.json")}
 
     def __init__(self, filename):
         self.__name = filename
@@ -94,7 +102,7 @@ class Database(dict):
     def create(name, data, replace=False):
         """Will create a new file named <name>.json with data inside and will add file to lock."""
         if name not in Database.locks:
-            Database.locks[name] = threading.Lock()
+            Database.locks[name] = Lock()
             database_path = os.path.join(os.path.dirname(__file__), name + ".json")
             open(database_path, "w+").close()
             Database.write(name, data)
