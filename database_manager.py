@@ -149,10 +149,7 @@ class Database(UserDict):
 	@staticmethod
 	def translate(name, key):
 		""" Will translate a name to the corresponding ID """
-		if key in (translations := Database.read(name)):
-			return translations[key]
-		else:
-			return False
+		return Database.read(name)[key]
 	
 	def __enter__(self):
 		self.clear()
