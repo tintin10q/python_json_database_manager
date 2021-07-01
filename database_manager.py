@@ -42,11 +42,11 @@ class Database(UserDict):
 	
 	# generate locks
 	my_path = os.path.dirname(os.path.realpath(__file__))
-	backup_folder_path = os.path.join(my_path, "json-db-backups")
+	backup_folder_path = os.path.join(my_path, "json_db_backups")
 	os.chdir(my_path)
 	locks = {file[:-5]: Lock() for file in glob.glob("*.json")}
 	
-	def __init__(self, filename):
+	def __init__(self, filename: str):
 		self.__name = filename
 		super().__init__()
 	
@@ -57,7 +57,7 @@ class Database(UserDict):
 		return Database.locks[self.name]
 	
 	@staticmethod
-	def get_lock(name):
+	def get_lock(name: str):
 		"""Returns lock based on input name."""
 		return Database.locks[name]
 	
@@ -66,48 +66,52 @@ class Database(UserDict):
 		return self.__name
 	
 	@name.setter
-	def name(self, name):
+	def name(self, name: str):
 		assert name in Database.locks, "You are trying to switch to a name that does not exist in the database."
 		self.__name = name
 	
 	@staticmethod
-	def read(name):
+	def read(name: str):
 		"""Will read <name>.json with a lock. Do not run in other lock that will cause deadlock"""
 		with Database.get_lock(name):
 			database = Database.__read(name)
 		return database
 	
 	@staticmethod
-	def __read(name):
+	def __read(name: str):
 		"""Will read <name>.json without a lock. Maybe rename this to _read_unsafe?"""
 		database_path = os.path.join(os.path.dirname(__file__), name + ".json")
 		with open(database_path, "r+") as database_file:
 			database = json.load(database_file)
 		return database
 	
-	def _readself(self):
+	def reads(self):
 		"""Will read <self.name>.json without a lock."""
 		return Database.__read(self.name)
+
+	def reads_with_lcok(self):
+		"""Will read <self.name>.json without a lock."""
+		return Database.read(self.name)
 	
 	@staticmethod
-	def write(name, data):
+	def write(name: str, data: dict):
 		"""Will write data to the <name>.json with a lock. Do not run in other lock that will cause deadlock. ALso do not run this in general use the context manager"""
 		with Database.get_lock(name):
 			return Database.__write(name, data)
 	
 	@staticmethod
-	def __write(name, data):
+	def __write(name: str, data: dict):
 		"""Will write data to <name>.json without a lock. Maybe rename this to _write_unsafe?"""
 		database_path = os.path.join(os.path.dirname(__file__), name + ".json")
 		with open(database_path, "w+") as file:
 			json.dump(data, file, indent=4, sort_keys=True)
 	
-	def _writeself(self):
-		"""Will write self:dict to <self.name>.json without a lock."""
-		Database.__write(self.name, self)
+	def writes(self, data: dict):
+		"""Will write data to <self.name>.json without a lock."""
+		Database.__write(self.name, data)
 	
 	@staticmethod
-	def create(name, data, replace=False):
+	def create(name: str, data: dict, replace: bool = False):
 		"""Will create a new file named <name>.json with data inside and will add file to lock."""
 		if name not in Database.locks:
 			Database.locks[name] = Lock()
@@ -122,13 +126,21 @@ class Database(UserDict):
 			return data
 	
 	@staticmethod
-	def add(name, data, key):
+	def add(name: str, key: str, data: dict):
 		""" Will try to add the data under the identifier to the specified file. If the data is already in this file
 		it will override this data. This is a shorthand for combining get and set."""
 		with Database.get_lock(name):
 			database = Database.__read(name)
 			database[key] = data
 			Database.__write(name, database)
+	
+	def adds(self, key, data: dict):
+		""" Will try to add the data under the identifier to the specified file. If the data is already in this file
+		it will override this data. This is a shorthand for combining get and set."""
+		with self.lock:
+			database = self.reads()
+			database[key] = data
+			self.writes(database)
 	
 	@staticmethod
 	def append(name, data):
@@ -137,6 +149,13 @@ class Database(UserDict):
 			database = Database.__read(name)
 			database[name].append(data)
 			Database.__write(name, database)
+	
+	def appends(self, data):
+		""" Will append database to a list named <self.name> in a file named <self.name>.json."""
+		with self.lock:
+			database = self.reads()
+			database[self.name].append(data)
+			Database.writes(database)
 	
 	@staticmethod
 	def reset_all(default_data):
@@ -149,30 +168,30 @@ class Database(UserDict):
 	@staticmethod
 	def translate(name, key):
 		""" Will translate a name to the corresponding ID """
-		if key in (translations := Database.read(name)):
-			return translations[key]
-		else:
-			return False
+		return Database.read(name)[key]
+	
+	def translates(self, key):
+		""" Will translate a name to the corresponding ID """
+		return self.reads()[key]
 	
 	def __enter__(self):
 		self.clear()
 		self.lock.acquire()
-		self.data = self._readself()
+		self.data = self.reads()
 		self.backup_data = copy.deepcopy(self.data)  # Make a deep copy to preserve the backup and also lists inside the backup
-		self.update(self.data)  # Set dict data to self.data
 		return self
 	
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		try:
-			if exc_type is not None:  # There was an error in context attempt rollback and re-raise
-				self.__write(self.name, self.backup_data)
+			if exc_type is not None:  # There was an error in context attempt rollback
+				self.writes(self.backup_data)
 			else:
 				try:  # Try to write new data
-					self._writeself()
+					self.writes(self.data)
 				except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback
-					self.__write(self.name, self.backup_data)
+					self.writes(self.backup_data)
 		finally:
-			Database.locks[self.name].release()
+			self.lock.release()
 	
 	@staticmethod
 	def create_backup(document_names: list[str] = "all_of_them"):
@@ -206,3 +225,10 @@ class Database(UserDict):
 			dst = os.path.join(backup_path, filename)
 			with locks[document_name]:
 				shutil.copy2(src, dst)
+	
+	def __contains__(self, item):
+		with self.lock:
+			if item in self.reads():
+				return True
+			else:
+				return False
