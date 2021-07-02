@@ -88,10 +88,6 @@ class Database(UserDict):
 	def reads(self):
 		"""Will read <self.name>.json without a lock."""
 		return Database.__read(self.name)
-
-	def reads_with_lcok(self):
-		"""Will read <self.name>.json without a lock."""
-		return Database.read(self.name)
 	
 	@staticmethod
 	def write(name: str, data: dict):
@@ -106,9 +102,9 @@ class Database(UserDict):
 		with open(database_path, "w+") as file:
 			json.dump(data, file, indent=4, sort_keys=True)
 	
-	def writes(self, data: dict):
+	def writes(self):
 		"""Will write data to <self.name>.json without a lock."""
-		Database.__write(self.name, data)
+		Database.__write(self.name, self.data)
 	
 	@staticmethod
 	def create(name: str, data: dict, replace: bool = False):
@@ -184,12 +180,12 @@ class Database(UserDict):
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		try:
 			if exc_type is not None:  # There was an error in context attempt rollback
-				self.writes(self.backup_data)
+				self.__write(self.name, self.backup_data)
 			else:
 				try:  # Try to write new data
-					self.writes(self.data)
+					self.writes()
 				except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback
-					self.writes(self.backup_data)
+					self.__write(self.name, self.backup_data)
 		finally:
 			self.lock.release()
 	
