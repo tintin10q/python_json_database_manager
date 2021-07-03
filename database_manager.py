@@ -16,7 +16,7 @@ class Database(UserDict):
 	The files are being read from disk and turned into dicts.
 	This class really shines with the context manager where you just ask for the name of a document and you
 	can edit it as a dict.
-	The dict is autometically written to disk when the context manager is closed.
+	The dict is automatically written to disk when the context manager is closed.
 	
 	_save functions can be run on the class outside a context manager as they acquire the lock for the file.
 	functions without save are only meant to be run inside a with statement that will lock the file for them.
