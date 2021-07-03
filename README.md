@@ -22,6 +22,7 @@ You can also change the target name by modifing self.name. There is an automatic
 ## Static methods
 There are also a couple static methods for when you do not want to run a database command in a `with`. All of these static methods will all acquire the lock for the file automatically. 
 
+- `create_backup(filenames: list[str])` -> Makes a backup of all .json files in a the backup folder. The default backup location is `json_db_backups`. Give "all_of_them" as input to backup all files. This is the default.
 - `read(name)` -> Will return the **data** in **name**.json
 - `write(name,data)` -> Will write **data** to **name**.json
 - `add(name, data key)` -> Will add/replace **data** under **key** in **name**.json. A shorthand for read + write.
@@ -30,6 +31,6 @@ There are also a couple static methods for when you do not want to run a databas
 - `translate(name, key)` -> Will return the value for **key** in **name**.json. Usefull for 1 layer dicts.
 - `create(name, data)` -> Will create a new **name**.json in the db dir', write **data** to it and will add a new lock. Do not create json files without this method as the database does only index json files on startup. 
 
-There are also verious 's methods. These don't take a name but instead look at self.name to know which file it should interact with. 
+There are also versions of these methods that end in 's. These don't take a name but instead look at self.name to know which file it should interact with. 
 
 'db dir = Directory with the database_manager.py
