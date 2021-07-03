@@ -13,7 +13,7 @@ with db('test') as users:
     users["foo"] = "bar"
 ```
 
-The context manager will automatically fetch the data that is in the .json file and make sure this code runs in a lock specefic to the file in the __enter__ and will in the __exit__ write the modified dictionary back to the file!
+The context manager will automatically fetch the data that is in the .json file and make sure this code runs in a lock specefic to the file in the __enter__ and will in the __exit__ write the modified dictionary back to the file. If any unhandeld erros happen in the with no data is written back to the file. 
 
 You can initiate the class with a target name. The class checks if this file exists. If it does then the `with` statement will write the dictionary to that file. 
 
@@ -28,6 +28,8 @@ There are also a couple static methods for when you do not want to run a databas
 - `append(name, data)` -> Will append **data** to a list named **name** in **name**.json 
 - `reset_all(default_data)` -> Will write **default_data** to all databases. You can implement your own exeptions here.
 - `translate(name, key)` -> Will return the value for **key** in **name**.json. Usefull for 1 layer dicts.
-- `create(name, data)` -> Will create a new **name**.json in the db dir', write **data** to it and will add a new lock. Do not create json files without this method as the database does only index json files on startup.  
+- `create(name, data)` -> Will create a new **name**.json in the db dir', write **data** to it and will add a new lock. Do not create json files without this method as the database does only index json files on startup. 
+
+There are also verious 's methods. These don't take a name but instead look at self.name to know which file it should interact with. 
 
 'db dir = Directory with the database_manager.py
