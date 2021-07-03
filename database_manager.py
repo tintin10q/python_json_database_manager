@@ -179,9 +179,7 @@ class Database(UserDict):
 	
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		try:
-			if exc_type is not None:  # There was an error in context attempt rollback
-				self.__write(self.name, self.backup_data)
-			else:
+			if exc_type is None:  # There was an error in context attempt rollback
 				try:  # Try to write new data
 					self.writes()
 				except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback
