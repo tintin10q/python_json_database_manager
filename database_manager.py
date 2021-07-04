@@ -63,6 +63,7 @@ class Database(UserDict):
 	
 	@property
 	def name(self):
+		""" Name of the current selected json file """
 		return self.__name
 	
 	@name.setter
@@ -102,10 +103,15 @@ class Database(UserDict):
 		with open(database_path, "w+") as file:
 			json.dump(data, file, indent=4, sort_keys=True)
 	
-	def writes(self):
-		"""Will write data to <self.name>.json without a lock."""
-		Database.__write(self.name, self.data)
-	
+	def writes(self, data: dict = None):
+		"""Will write data to <self.name>.json without a lock.
+			If data is None it will write self.data
+		"""
+		if data is None:
+			self.__write(self.name, self.data)
+		else:
+			self.__write(self.name, data)
+		
 	@staticmethod
 	def create(name: str, data: dict, replace: bool = False):
 		"""Will create a new file named <name>.json with data inside and will add file to lock."""
@@ -151,15 +157,13 @@ class Database(UserDict):
 		with self.lock:
 			database = self.reads()
 			database[self.name].append(data)
-			Database.writes(database)
+			self.writes(database)
 	
 	@staticmethod
-	def reset_all(default_data):
+	def reset_all(default_data: dict):
 		"""Will reset all databases. The reset state should be registered manually for special cases."""
-		for name, lock in Database.locks.items():
-			with lock:
-				Database.write(name, default_data)
-		return
+		for name in Database.locks.keys():
+			Database.write(name, default_data)
 	
 	@staticmethod
 	def translate(name, key):
@@ -182,8 +186,9 @@ class Database(UserDict):
 			if exc_type is None:  # There was an error in context attempt rollback
 				try:  # Try to write new data
 					self.writes()
-				except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback
+				except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback and then raise the error to notify user
 					self.__write(self.name, self.backup_data)
+					raise e
 		finally:
 			self.lock.release()
 	
