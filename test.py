@@ -192,6 +192,7 @@ class TestCreateBackups(unittest.TestCase):
 			In setup we are assuming that .create works so that one is in a seperate testcase
 		"""
 		Database.create(test_name, test_data, replace=True)
+		os.mkdir(Database.backup_folder_path)
 		self.backups_already_there = set(os.listdir(Database.backup_folder_path))
 	
 	def tearDown(self) -> None:
