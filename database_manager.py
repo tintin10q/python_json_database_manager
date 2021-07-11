@@ -41,10 +41,10 @@ class Database(UserDict):
 	"""
 	
 	# generate locks
+	backup_directory_name = "json_db_backups"
 	my_path = os.path.dirname(os.path.realpath(__file__))
-	backup_folder_path = os.path.join(my_path, "json_db_backups")
-	os.chdir(my_path)
-	locks = {file[:-5]: Lock() for file in glob.glob("*.json")}
+	backup_folder_path = os.path.join(my_path, backup_directory_name)
+	locks = {file[:-5]: Lock() for file in glob.glob(f"{my_path}\\*.json")}
 	
 	def __init__(self, filename: str):
 		self.__name = filename
