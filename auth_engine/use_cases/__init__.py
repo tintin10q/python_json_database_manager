@@ -1,2 +1,0 @@
-from request_JwtPassport import request_Jwtpassport
-from can_user_recieve_passport import can_user_recieve_passport
