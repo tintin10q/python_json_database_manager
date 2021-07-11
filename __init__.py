@@ -1,1 +1,1 @@
-from database_manager import Database
+from .database_manager import Database
