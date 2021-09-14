@@ -22,6 +22,7 @@ You can also change the target name by modifing self.name. There is an automatic
 ## Static methods
 There are also a couple static methods for when you do not want to run a database command in a `with`. All of these static methods will all acquire the lock for the file automatically. 
 
+- `info()` -> Gives some info about the Database like paths and current locks.
 - `create_backup(filenames: list[str])` -> Makes a backup of all .json files in a the backup folder. The default backup location is `json_db_backups`. Give "all_of_them" as input to backup all files. This is the default.
 - `read(name)` -> Will return the **data** in **name**.json
 - `write(name,data)` -> Will write **data** to **name**.json
