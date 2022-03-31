@@ -238,6 +238,7 @@ class Database(UserDict):
                 shutil.copy2(src, dst)
 
     def __contains__(self, item):
+        """ This can easily cause a deadlock if you are not carefull. We could add that it does different things depending if it is locked right now? """
         with self.lock:
             if item in self.reads():
                 return True
