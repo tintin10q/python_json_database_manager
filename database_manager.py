@@ -9,6 +9,10 @@ from multiprocessing import Lock
 from collections import UserDict
 
 
+__author__ = 'Quinten Cabo'
+__license__ = 'MIT'
+
+
 class Database(UserDict):
     """
     This class is used to write and read stuff with a database made out of local json files
