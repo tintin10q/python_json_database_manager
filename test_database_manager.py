@@ -19,8 +19,8 @@ class TestDbStatic(unittest.TestCase):
 
     def setUp(self) -> None:
         """ Create a ___testing.json
-			In setup we are assuming that .create works so that one is in a seperate testcase
-		"""
+            In setup we are assuming that .create works so that one is in a separate testcase
+        """
 
         Database.create(test_name, test_data, replace=True)
 
@@ -86,8 +86,8 @@ class TestDbStatic(unittest.TestCase):
 class TestDatabaseInstance(unittest.TestCase):
     def setUp(self) -> None:
         """ Create a ___testing.json
-			In setup we are assuming that .create works so that one is in a seperate testcase
-		"""
+            In setup we are assuming that .create works so that one is in a seperate testcase
+        """
 
         Database.create(test_name, test_data, replace=True)
 
@@ -144,6 +144,22 @@ class TestDatabaseInstance(unittest.TestCase):
         self.assertTrue("1" in db)
         self.assertFalse("2" in db)
 
+    def test__contains__in_with(self):
+        with Database(test_name) as db:
+            self.assertTrue("test" in db)
+            self.assertTrue("1" in db)
+            self.assertFalse("2" in db)
+
+    def test__in_with(self):
+        """ Test if __in_with property is set correctly. This property is needed for __contains__ to not deadlock in a with """
+        db = Database(test_name)
+        self.assertFalse(db.__dict__['_Database__in_with'])
+        with db as dbwith:
+            self.assertTrue(dbwith.__dict__['_Database__in_with'])
+            self.assertTrue(db.__dict__['_Database__in_with'])
+        self.assertFalse(db.__dict__['_Database__in_with'])
+        self.assertFalse(dbwith.__dict__['_Database__in_with'])
+
     def test_context_manager(self):
         with Database(test_name) as db:
             db["aapje"] = "aapje"
@@ -170,13 +186,15 @@ class TestDatabaseInstance(unittest.TestCase):
         self.assertNotIn("aaa", data)
 
     def test_thread_save(self):
-        # This should take 2 seconds showing that the threads waited on eachother
+        """ This should take 1 second showing that the threads waited on each other"""
         db = Database(test_name)
+
+        wait_time = 0.5
 
         def thread_write(databse_object: Database, _id: int, data: str):
             with databse_object as dbs:
                 dbs["thread"] = _id
-                time.sleep(1)
+                time.sleep(wait_time)
                 dbs["thread_data"] = data
 
         s = time.time()
@@ -190,7 +208,7 @@ class TestDatabaseInstance(unittest.TestCase):
         data = Database.read(test_name)
         self.assertEqual(data["thread"], 2)
         self.assertEqual(data["thread_data"], "lala2")
-        self.assertAlmostEqual(s1 - s, 2.0, 1)
+        self.assertAlmostEqual(s1 - s, wait_time * 2, 1)  # times 2 because there are 2 threads
 
 
 class TestCreateBackups(unittest.TestCase):
