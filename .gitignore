@@ -1,2 +1,4 @@
 .idea
 json_db_backups
+.pytest_cache
+.pytest_cache/*
