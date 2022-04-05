@@ -59,6 +59,7 @@ class Database(UserDict):
 
     def __init__(self, filename: str):
         self.__name = filename
+        self.__in_with = False  # This is a boolean which is true when the Object __enter__ has been called and __exit__ has not yet been called. Used for __contains__
         super().__init__()
 
     @property
@@ -186,11 +187,11 @@ class Database(UserDict):
         return self.reads()[key]
 
     def __enter__(self):
+        self.__in_with = True
         self.clear()
         self.lock.acquire()
         self.data = self.reads()
-        self.backup_data = copy.deepcopy(
-            self.data)  # Make a deep copy to preserve the backup and also lists inside the backup
+        self.backup_data = copy.deepcopy(self.data)  # Make a deep copy to preserve the backup and also lists inside the backup
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -198,10 +199,11 @@ class Database(UserDict):
             if exc_type is None:  # There was an error in context attempt rollback
                 try:  # Try to write new data
                     self.writes()
-                except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback and then raise the error to notify user
+                except TypeError as e:  # This can happen if data is not json serializable, Attempt rollback and then raise the error to notify
                     self.__write(self.name, self.backup_data)
                     raise e
         finally:
+            self.__in_with = False
             self.lock.release()
 
     @staticmethod
@@ -237,10 +239,13 @@ class Database(UserDict):
             with locks[document_name]:
                 shutil.copy2(src, dst)
 
-    def __contains__(self, item):
-        """ This can easily cause a deadlock if you are not carefull. We could add that it does different things depending if it is locked right now? """
-        with self.lock:
-            if item in self.reads():
-                return True
-            else:
-                return False
+    def __contains__(self, key):
+        """ This can easily cause a deadlock if you are not carefull.
+            The contains can now detect if it is in a with statement and will not cause a deadlock when it is.
+        """
+
+        if self.__in_with:
+            return key in self.data  # Check if the key is in the data that __enter__ read.
+        else:
+            with self.lock:  # Lock read
+                return key in self.reads()
