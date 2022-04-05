@@ -40,21 +40,21 @@ class Database(UserDict):
     or just the string "all_of_them" which is the default for all documents to be backed up.
     """
 
-    # generate locks
+    # You can set the backup dir name here
     backup_directory_name = "json_db_backups"
-    my_path = os.path.dirname(os.path.realpath(__file__))
+    my_path = os.path.dirname(os.path.realpath(__file__))  # Get the place of this file with realpath
     backup_folder_path = os.path.join(my_path, backup_directory_name)
-    locks = {os.path.basename(file[:-5]): Lock()
-             for file in glob.glob(os.path.join(my_path, "*.json"))}
+    
+    # generate locks
+    locks = {os.path.basename(file[:-5]): Lock() for file in glob.iglob(os.path.join(my_path, "*.json"))}
 
-    # @staticmethod
     @staticmethod
     def info():
         return {
             "backup_directory_name": Database.backup_directory_name,
             "my_path": Database.my_path,
             "backup_folder_path": Database.backup_folder_path,
-            "locks": Database.locks,
+            "locks": Database.locks
         }
 
     def __init__(self, filename: str):
@@ -92,31 +92,33 @@ class Database(UserDict):
 
     @staticmethod
     def __read(name: str):
-        """Will read <name>.json without a lock. Maybe rename this to _read_unsafe?"""
+        """ Will read <name>.json without a lock. Maybe rename this to _read_unsafe? """
         database_path = os.path.join(os.path.dirname(__file__), name + ".json")
         with open(database_path, "r+") as database_file:
             database = json.load(database_file)
         return database
 
     def reads(self):
-        """Will read <self.name>.json without a lock."""
+        """ Will read <self.name>.json without a lock. """
         return Database.__read(self.name)
 
     @staticmethod
     def write(name: str, data: dict):
-        """Will write data to the <name>.json with a lock. Do not run in other lock that will cause deadlock. ALso do not run this in general use the context manager"""
+        """ Will write data to the <name>.json with a lock. Do not run in other lock that will cause a deadlock! 
+            ALso do not run this in general use the context manager.
+        """
         with Database.get_lock(name):
             return Database.__write(name, data)
 
     @staticmethod
     def __write(name: str, data: dict):
-        """Will write data to <name>.json without a lock. Maybe rename this to _write_unsafe?"""
+        """ Will write data to <name>.json without a lock. Maybe rename this to _write_unsafe? """
         database_path = os.path.join(os.path.dirname(__file__), name + ".json")
         with open(database_path, "w+") as file:
             json.dump(data, file, indent=4, sort_keys=True)
 
     def writes(self, data: dict = None):
-        """Will write data to <self.name>.json without a lock.
+        """ Will write data to <self.name>.json without a lock.
             If data is None it will write self.data
         """
         if data is None:
@@ -125,8 +127,10 @@ class Database(UserDict):
             self.__write(self.name, data)
 
     @staticmethod
-    def create(name: str, data: dict, replace: bool = False):
-        """Will create a new file named <name>.json with data inside and will add file to lock."""
+    def create(name: str, data: dict = None, replace: bool = False):
+        """ Will create a new file named <name>.json with data inside and will add file to lock. """
+        if data is None:
+            data = dict()
         if name not in Database.locks:
             Database.locks[name] = Lock()
             database_path = os.path.join(os.path.dirname(__file__), name + ".json")
@@ -142,7 +146,7 @@ class Database(UserDict):
     @staticmethod
     def add(name: str, key: str, data: dict):
         """ Will try to add the data under the identifier to the specified file. If the data is already in this file
-        it will override this data. This is a shorthand for combining get and set."""
+        it will override this data. This is a (probably faster) shorthand for combining get and set. """
         with Database.get_lock(name):
             database = Database.__read(name)
             database[key] = data
@@ -150,7 +154,7 @@ class Database(UserDict):
 
     def adds(self, key, data: dict):
         """ Will try to add the data under the identifier to the specified file. If the data is already in this file
-        it will override this data. This is a shorthand for combining get and set."""
+        it will override this data. This is a shorthand for combining get and set. """
         with self.lock:
             database = self.reads()
             database[key] = data
@@ -158,14 +162,14 @@ class Database(UserDict):
 
     @staticmethod
     def append(name, data):
-        """ Will append database to a list named <name> in a file named <name>.json."""
+        """ Will append database to a list named <name> in a file named <name>.json. """
         with Database.get_lock(name):
             database = Database.__read(name)
             database[name].append(data)
             Database.__write(name, database)
 
     def appends(self, data):
-        """ Will append database to a list named <self.name> in a file named <self.name>.json."""
+        """ Will append database to a list named <self.name> in a file named <self.name>.json. """
         with self.lock:
             database = self.reads()
             database[self.name].append(data)
@@ -173,7 +177,7 @@ class Database(UserDict):
 
     @staticmethod
     def reset_all(default_data: dict):
-        """Will reset all databases. The reset state should be registered manually for special cases."""
+        """ Will reset all databases. The reset state should be registered manually for special cases. """
         for name in Database.locks.keys():
             Database.write(name, default_data)
 
@@ -211,7 +215,6 @@ class Database(UserDict):
         """
         Makes backups in a backup folder with the date
         :param document_names:
-        :imports: datetime
         """
 
         if document_names == "all_of_them":
@@ -240,7 +243,7 @@ class Database(UserDict):
                 shutil.copy2(src, dst)
 
     def __contains__(self, key):
-        """ This can easily cause a deadlock if you are not carefull.
+        """ This can cause a deadlock if you are not carefull.
             The contains can now detect if it is in a with statement and will not cause a deadlock when it is.
         """
 
