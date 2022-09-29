@@ -10,7 +10,7 @@ from collections import UserDict
 
 
 __author__ = 'Quinten Cabo'
-__license__ = 'MIT'
+__license__ = 'GNUV2'
 
 
 class Database(UserDict):
