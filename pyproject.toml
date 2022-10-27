@@ -5,9 +5,16 @@ description = "A thread safe json files database context manager."
 authors = ["Quinten Cabo <tintin10q@hotmail.com>"]
 readme = "README.md"
 packages = [{include = "database_manager.py"}]
+license = "GNUV2"
+homepage = "https://github.com/tintin10q/python_json_database_manager"
+repository = "https://github.com/tintin10q/python_json_database_manager"
+classifiers = ["License :: GNU V2 License","Programming Language :: Python :: 3"]
+keywords = ["json", "database", "thread-save", "context-manager", "0 dependencies"]
+
+include = ["LICENSE", "test_database_manager.py"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.7"
 
 [build-system]
 requires = ["poetry-core"]
