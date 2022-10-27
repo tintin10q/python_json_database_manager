@@ -264,5 +264,14 @@ class TestDBCreate(unittest.TestCase):
         os.remove(test_filename)
 
 
+def run_test():
+    """
+        Run all unittests. Equivalent to:
+        `poetry run python -u -m unittest discover`
+    """
+    import subprocess
+    subprocess.run(['python', '-u', '-m', 'unittest', 'discover'])
+
+
 if __name__ == '__main__':
-    unittest.main()
+    run_test()
