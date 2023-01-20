@@ -1,5 +1,5 @@
 # python-json-database-manager
-The database manager used in many of my projects.
+The json file database manager used in many of my projects.
 
 A thread safe json database context manager. The class creates separate locks for each .json file in the same directory as the .py file. This way if one file is edited other files do not have to wait. There are 23 test in `test_database_manager.py`.
 
